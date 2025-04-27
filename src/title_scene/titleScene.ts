@@ -73,7 +73,10 @@ export class TitleScene extends BaseScene<boolean> {
         this.onPointDownCapture.remove(this.detectPointDownHandler);
     };
 
-    private pointDownHandler = (ev: g.PointDownEvent): void => this.eventQueue.push(ev);
+    private pointDownHandler = (ev: g.PointDownEvent): void => {
+        if (ev.target instanceof Button) return;
+        this.eventQueue.push(ev);
+    };
 
     private pointUpHandler = (ev: g.PointUpEvent): void => this.eventQueue.push(ev);
 
