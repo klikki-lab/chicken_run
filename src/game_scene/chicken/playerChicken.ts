@@ -132,11 +132,11 @@ export class PlayerChicken extends Chicken {
         this.isGliding = true;
     }
 
-    hop(opponent: Chicken, accRate: number): void {
+    hop(opponent: Chicken, accRate: number, count: number): void {
         this._combo++;
         this.y = opponent.getTop() - this.getHeight() / 2;
         this.modified();
-        this.setVelocityX(accRate + (accRate * 0.002));
+        this.setVelocityX(accRate + (accRate * 0.002 * count));
 
         this._canJump = false;
         this.velocity.y = -PlayerChicken.JUMP_ACC;
