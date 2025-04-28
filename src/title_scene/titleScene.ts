@@ -82,6 +82,7 @@ export class TitleScene extends BaseScene<boolean> {
 
     private updateHandler = (): void | boolean => {
         if (this.isFinish) {
+            this.player.stop();
             this.finishScene();
             return true;
         }
@@ -145,11 +146,12 @@ export class TitleScene extends BaseScene<boolean> {
 
     private createTerrain(): Terrain {
         const periods = [
-            { period: 100, rate: 0.3 },
-            { period: 50, rate: 0.5 },
-            { period: 10, rate: 0.2 },
+            { period: 100, rate: 0.2 },
+            { period: 50, rate: 0.3 },
+            { period: 10, rate: 0.5 },
         ];
-        const terrain = new Terrain(this, new Random(g.game.random), GameScene.START_Y, GameScene.TERRAIN_AMPLITUDE, periods);
+        const amplitude = g.game.height * 0.75;
+        const terrain = new Terrain(this, new Random(g.game.random), GameScene.START_Y, amplitude, periods);
         return terrain;
     }
 
@@ -161,21 +163,21 @@ export class TitleScene extends BaseScene<boolean> {
         });
         const threshold = {
             left: 0.45 * camera.getWidth(),
-            top: 0.78 * camera.getHeight(),
+            top: 0.5 * camera.getHeight(),
             right: 0.5 * camera.getWidth(),
             bottom: 0.8 * camera.getHeight(),
         };
-        camera.x = player.getLeft() - threshold.left + g.game.width * 0.5;
-
+        camera.x = player.getCenterX() - threshold.left + g.game.width * 0.5;
         camera.onUpdate.add(camera => {
             const cameraLeft = camera.getLeft();
             const leftThreshold = cameraLeft + threshold.left;
             const rightThreshold = cameraLeft + threshold.right;
+            const targetX = player.getCenterX();
             let destX = camera.x;
-            if (player.getLeft() > leftThreshold) {
-                destX = player.getLeft() - threshold.left + camera.getWidth() * 0.5;
-            } else if (player.getRight() < rightThreshold) {
-                destX = player.getRight() - threshold.right + camera.getWidth() * 0.5;
+            if (targetX > leftThreshold) {
+                destX = targetX - threshold.left + camera.getWidth() * 0.5;
+            } else if (targetX < rightThreshold) {
+                destX = targetX - threshold.right + camera.getWidth() * 0.5;
             }
             if (destX !== camera.x) {
                 camera.x += (destX - camera.x) * 0.5;
@@ -263,7 +265,7 @@ export class TitleScene extends BaseScene<boolean> {
             this.timeLabel.text = "0";
             this.timeLabel.invalidate();
             this.isFinish = true;
-        }
+        };
         return countdownTimer;
     };
 
@@ -277,7 +279,6 @@ export class TitleScene extends BaseScene<boolean> {
 
     private createBackLayer(): Entity2D {
         const layer = this.createLayer();
-
         new FilledRect2D({
             scene: this,
             parent: layer,
@@ -286,19 +287,6 @@ export class TitleScene extends BaseScene<boolean> {
             cssColor: "black",
             opacity: 0.8,
         });
-        // const height = 80;
-        // const maxHeight = GameScene.TERRAIN_AMPLITUDE + g.game.height * 2;
-        // const count = maxHeight / height;
-        // for (let i = 0; i <= count; i++) {
-        //     const y = -maxHeight / 2 + i * height;
-        //     const colorRate = 1 - i / (count - 1);//004a80
-        //     const red = Math.floor(parseInt("0x00", 16) * colorRate);
-        //     const green = Math.floor(parseInt("0x4a", 16) * colorRate);
-        //     const blue = Math.floor(parseInt("0x80", 16) * colorRate);
-        //     const cssColor = `rgb(${red}, ${green}, ${blue})`;
-        //     const background = new Background(this, y, height, cssColor);
-        //     layer.append(background);
-        // }
         return layer;
     }
 
