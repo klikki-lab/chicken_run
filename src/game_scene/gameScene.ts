@@ -30,7 +30,6 @@ const SoundId = {
 export class GameScene extends BaseScene<void> {
 
     public static readonly START_Y = g.game.height * 0.5;
-    public static readonly TERRAIN_AMPLITUDE = g.game.height;
 
     private timeline: tl.Timeline;
     private audioController: AudioController;
@@ -82,7 +81,7 @@ export class GameScene extends BaseScene<void> {
         this.frontLayer.append(this.player);
 
         this.timeline = new tl.Timeline(this);
-        this.audioController = this.createAudioController(0.2, 0.2, !isTouched);
+        this.audioController = this.createAudioController(0.175, 0.2, !isTouched);
         this.eventQueue = new PointEventQueue();
 
         if (!isTouched) {
@@ -167,37 +166,15 @@ export class GameScene extends BaseScene<void> {
         this.terrain.step(this.camera);
         this.translateCamera();
 
-        if (g.game.age % g.game.fps === 0 && this.opponentLayer.children.length <= 2 && this.player.getVelocityXRate() >= 0.1) {
-            const opponent = new OpponentChicken(this);
-            opponent.x = this.camera.getRight();
-            opponent.y = this.terrain.getEndPosition().y;
-            opponent.setVelocityX(this.random.range(0.6, 0.95) * this.player.getVelocityX());
-            opponent.onUpdate.add(() => { return opponent.run(this.terrain) });
-            this.opponentLayer.append(opponent);
+        if (g.game.age % g.game.fps === 0 &&
+            this.opponentLayer.children.length <= 2 &&
+            this.player.getVelocityXRate() >= 0.1) {
+            this.addOpponent();
         }
 
         const rate = this.player.getVelocityXRate();
         if (g.game.age % (2 * Math.round(2 - rate)) === 0) {
-            const rect = new FilledRect2D({
-                scene: this,
-                width: 64 * rate + g.game.random.generate() * 128,
-                height: 2 + rate * 64,
-                cssColor: "white",
-                opacity: 0.1 * rate,
-            });
-            rect.x = this.camera.getRight();
-            rect.y = this.camera.getTop() + g.game.random.generate() * (g.game.height - rect.height);
-            rect.onUpdate.add(() => {
-                rect.x -= rate * rect.width * 0.2;
-                rect.modified();
-
-                const camera = g.game.focusingCamera;
-                if (camera instanceof Camera2D && rect.getRight() < camera.getLeft()) {
-                    rect.destroy();
-                    return true;
-                }
-            })
-            this.effectLayer.append(rect);
+            this.addBackgroundEffect(rate);
         }
 
         if (!this.countdownTimer.isFinished()) {
@@ -230,6 +207,39 @@ export class GameScene extends BaseScene<void> {
         this.hudLayer.modified();
     }
 
+    private addOpponent(): void {
+        const opponent = new OpponentChicken(this);
+        opponent.x = this.camera.getRight();
+        opponent.y = this.terrain.getEndPosition().y;
+        const max = 0.95;
+        const min = 0.65;
+        const rate = g.game.random.generate() * (max - min) + min;
+        opponent.setVelocityX(rate * this.player.getVelocityX());
+        opponent.onUpdate.add(() => { return opponent.run(this.terrain) });
+        this.opponentLayer.append(opponent);
+    }
+
+    addBackgroundEffect(rate: number): void {
+        const rect = new FilledRect2D({
+            scene: this,
+            width: 64 * rate + g.game.random.generate() * 128,
+            height: 2 + rate * 64,
+            cssColor: "white",
+            opacity: 0.1 * rate,
+        });
+        rect.x = this.camera.getRight();
+        rect.y = this.camera.getTop() + g.game.random.generate() * (g.game.height - rect.height);
+        rect.onUpdate.add(() => {
+            rect.x -= rate * rect.width * 0.2;
+            rect.modified();
+            if (rect.getRight() < this.camera.getLeft()) {
+                rect.destroy();
+                return true;
+            }
+        })
+        this.effectLayer.append(rect);
+    }
+
     private createChicken(): PlayerChicken {
         const chicken = new PlayerChicken(this);
         chicken.x = 0;
@@ -241,6 +251,8 @@ export class GameScene extends BaseScene<void> {
                 this.emitParticles(chicken, 2);
         };
         chicken.onMove = (player, x, y) => {
+            let isCollide = false;
+            const trampledOpponents: OpponentChicken[] = [];
             const distance = player.canJump() ? player.getWidth() * 0.5 : player.getWidth() * 1.2;
             for (const opponent of this.opponentLayer.children) {
                 if (g.Collision.within(x, y, opponent.x, opponent.getCenterY(), distance)) {
@@ -253,20 +265,26 @@ export class GameScene extends BaseScene<void> {
                             opponent.collideFront(player, 0.5);
                         }
                         this.audioController.playSound(SoundId.CRUSH);
-                        return true;
+                        isCollide = true;
                     } else {
                         if (player.isFalling()) {
-                            this.audioController.playSound(this.random.generate() > 0.1 ? SoundId.TRAMPLE_1 : SoundId.TRAMPLE_2);
-                            player.hop(opponent, 1.03);
                             opponent.trampled(0.8);
-                            this.emitParticles1(player, 8);
-                            return true;
+                            this.emitTrampleParticles(opponent, 8);
+                            trampledOpponents.push(opponent);
                         }
 
                     }
                 }
             }
-            return false;
+            const tlanpleCount = trampledOpponents.length;
+            if (tlanpleCount > 0) {
+                const soundId = g.game.random.generate() > 0.1 ? SoundId.TRAMPLE_1 : SoundId.TRAMPLE_2;
+                this.audioController.playSound(soundId);
+                const minYOpponent = trampledOpponents.reduce((prev, current) => (current.y < prev.y ? current : prev));
+                player.hop(minYOpponent, 1.03, tlanpleCount);
+                return true;
+            }
+            return isCollide;
         };
         return chicken;
     }
@@ -289,10 +307,10 @@ export class GameScene extends BaseScene<void> {
         }
     }
 
-    private emitParticles1(chicken: PlayerChicken, count: number): void {
+    private emitTrampleParticles(chicken: OpponentChicken, count: number): void {
         for (let i = 0; i < count; i++) {
             const x = chicken.getCenterX() + (g.game.random.generate() - 0.5) * 4;
-            const y = chicken.getBottom() + (g.game.random.generate() - 0.5) * 4;
+            const y = chicken.getTop() + (g.game.random.generate() - 0.5) * 4;
             const vx = g.game.random.generate() * chicken.getWidth() * 0.5;
             const vy = (g.game.random.generate() - 0.5) * chicken.getHeight() * 0.5;
             const p = new Particle(this, x, y, vx, vy);
@@ -314,11 +332,12 @@ export class GameScene extends BaseScene<void> {
 
     private createTerrain(random: Random): Terrain {
         const periods = [
-            { period: 100, rate: 0.3 },
-            { period: 50, rate: 0.5 },
-            { period: 10, rate: 0.2 },
+            { period: 100, rate: 0.1 },
+            { period: 50, rate: 0.3 },
+            { period: 10, rate: 0.6 },
         ];
-        const terrain = new Terrain(this, random, GameScene.START_Y, GameScene.TERRAIN_AMPLITUDE, periods);
+        const amplitude = g.game.height * 0.25;
+        const terrain = new Terrain(this, random, GameScene.START_Y, amplitude, periods);
         return terrain;
     }
 
@@ -329,45 +348,45 @@ export class GameScene extends BaseScene<void> {
             anchor: 0.5,
         });
         const threshold = {
-            left: 0.15 * camera.getWidth(),
-            top: 0.78 * camera.getHeight(),
-            right: 0.85 * camera.getWidth(),
+            left: 0.2 * camera.getWidth(),
+            top: 0.6 * camera.getHeight(),
+            right: 0.8 * camera.getWidth(),
             bottom: 0.8 * camera.getHeight(),
         };
-        camera.x = player.getLeft() - threshold.left + g.game.width * 0.5;
-
+        camera.x = player.getCenterX() - threshold.left + g.game.width * 0.5;
+        camera.y = g.game.height * 0.2;
         camera.onUpdate.add(camera => {
             const cameraLeft = camera.getLeft();
             const leftThreshold = cameraLeft + threshold.left;
             const rightThreshold = cameraLeft + threshold.right;
+            const targetX = player.getCenterX();
             let easingX = 0.5;
             let destX = camera.x;
-            if (player.getLeft() > leftThreshold) {
-                destX = player.getLeft() - threshold.left + camera.getWidth() * 0.5;
-            } else if (player.getRight() < rightThreshold) {
-                destX = player.getRight() - threshold.right + camera.getWidth() * 0.5;
+            if (targetX > leftThreshold) {
+                destX = targetX - threshold.left + camera.getWidth() * 0.5;
+            } else if (targetX < rightThreshold) {
+                destX = targetX - threshold.right + camera.getWidth() * 0.5;
             }
             if (destX !== camera.x) {
                 camera.x += (destX - camera.x) * easingX;
                 camera.modified();
             }
+            // const cameraTop = camera.getTop();
+            // const upThreshold = cameraTop + threshold.top;
+            // const bottomThreshold = cameraTop + threshold.bottom;
+            // const targetY = g.game.height * 0.52;// this.terrain.getGroundTop(player.x);
+            // let easingY = 0.1;
+            // let destY = camera.y;
+            // if (targetY < upThreshold) {
+            //     destY = targetY - threshold.top + camera.getHeight() * 0.5;
+            // } else if (targetY > bottomThreshold) {
+            //     destY = targetY - threshold.bottom + camera.getHeight() * 0.5;
+            // }
 
-            const cameraTop = camera.getTop();
-            const upThreshold = cameraTop + threshold.top;
-            const bottomThreshold = cameraTop + threshold.bottom;
-            const targetY = this.terrain.getGroundTop(player.x);
-            let easingY = 0.1;
-            let destY = camera.y;
-            if (targetY < upThreshold) {
-                destY = targetY - threshold.top + camera.getHeight() * 0.5;
-            } else if (targetY > bottomThreshold) {
-                destY = targetY - threshold.bottom + camera.getHeight() * 0.5;
-            }
-
-            if (destY !== camera.y) {
-                camera.y += (destY - camera.y) * easingY;
-                camera.modified();
-            }
+            // if (destY !== camera.y) {
+            //     camera.y += (destY - camera.y) * easingY;
+            //     camera.modified();
+            // }
         });
         return camera;
     }
@@ -412,13 +431,12 @@ export class GameScene extends BaseScene<void> {
         countdownTimer.onFinish = () => {
             this.timeLabel.setTime(0);
             this.finishGame();
-        }
+        };
         return countdownTimer;
     }
 
     private createBackLayer(): Entity2D {
         const layer = this.createLayer();
-
         new FilledRect2D({
             scene: this,
             parent: layer,
@@ -427,19 +445,6 @@ export class GameScene extends BaseScene<void> {
             cssColor: "black",
             opacity: 0.8,
         });
-        // const height = 80;
-        // const maxHeight = GameScene.TERRAIN_AMPLITUDE + g.game.height * 2;
-        // const count = maxHeight / height;
-        // for (let i = 0; i <= count; i++) {
-        //     const y = -maxHeight / 2 + i * height;
-        //     const colorRate = 1 - i / (count - 1);//004a80
-        //     const red = Math.floor(parseInt("0x00", 16) * colorRate);
-        //     const green = Math.floor(parseInt("0x4a", 16) * colorRate);
-        //     const blue = Math.floor(parseInt("0x80", 16) * colorRate);
-        //     const cssColor = `rgb(${red}, ${green}, ${blue})`;
-        //     const background = new Background(this, y, height, cssColor);
-        //     layer.append(background);
-        // }
         return layer;
     }
 
