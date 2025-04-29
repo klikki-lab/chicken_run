@@ -32,7 +32,7 @@ export class OpponentChicken extends Chicken {
         }
 
         if (this.getRight() < camera.getLeft() ||
-            this.getLeft() > camera.getRight()) {
+            this.getLeft() - this.getWidth() * 0.5 > camera.getRight()) {
             this.destroy();
         }
     }
