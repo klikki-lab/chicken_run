@@ -209,20 +209,20 @@ export class TitleScene extends BaseScene<boolean> {
             scene: this,
             parent: layer,
             font: this.font,
-            text: "ジャンプ : 画面にタッチ",
-            width: this.font.size * 14,
+            text: "画面にタッチ\n  ▷ ジャンプ",
+            width: this.font.size * 7,
         });
-        click.x = this.font.size * 2;
-        click.y = g.game.height * 0.1;
+        click.x = BaseScene.SCREEN_PADDING;
+        click.y = BaseScene.SCREEN_PADDING;
 
         const longPress = new al.Label({
             scene: this,
             parent: layer,
             font: this.font,
-            text: "滑空          : ジャンプ中に長押し",
-            width: this.font.size * 14,
+            text: "ジャンプ中に長押し\n  ▷ 滑空",
+            width: this.font.size * 10,
         });
-        longPress.x = this.font.size * 2;
+        longPress.x = BaseScene.SCREEN_PADDING;
         longPress.y = click.y + longPress.height * 1.5;
 
         const descriptionFontSize = this.font.size * 0.75;
@@ -235,23 +235,23 @@ export class TitleScene extends BaseScene<boolean> {
                 "ナカマを踏むと加速する！\n",
             width: descriptionFontSize * 12,
         });
-        description.x = this.font.size * 2;
-        description.y = longPress.y + description.height;
+        description.x = BaseScene.SCREEN_PADDING * 1.5;
+        description.y = g.game.height - description.height;
     }
 
     private createTimeLabel(timeLimit: number): g.Label {
-        const margin = this.font.size * 0.25;
+        const fontSize = this.font.size * 0.75;
         const timeLabel = new g.Label({
             scene: this,
             font: this.font,
-            fontSize: this.font.size * 0.75,
+            fontSize: fontSize,
             text: timeLimit.toString(),
-            width: this.font.size * 2,
+            width: fontSize * 2,
             textAlign: "right",
             widthAutoAdjust: false,
         });
-        timeLabel.x = g.game.width - timeLabel.width - margin;
-        timeLabel.y = margin;
+        timeLabel.x = g.game.width - fontSize * 2.25;
+        timeLabel.y = g.game.height - fontSize * 1.25;
         return timeLabel;
     }
 
