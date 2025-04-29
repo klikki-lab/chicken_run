@@ -236,10 +236,10 @@ export class GameScene extends BaseScene<void> {
         const opponent = new OpponentChicken(this);
         const x = this.camera.getRight() + opponent.getWidth() * 0.5;
         opponent.moveTo(x, this.terrain.getGroundTop(x));
-        const max = 0.95;
         const min = 0.65;
-        const rate = g.game.random.generate() * (max - min) + min;
-        opponent.setVelocityX(rate * this.player.getVelocityX());
+        const max = 0.95;
+        const velocityRate = this.random.generate(min, max);
+        opponent.setVelocityX(velocityRate * this.player.getVelocityX());
         opponent.onUpdate.add(() => { return opponent.run(this.terrain, this.camera) });
         this.opponentLayer.append(opponent);
     }
