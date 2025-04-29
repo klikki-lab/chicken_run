@@ -215,7 +215,7 @@ export class GameScene extends BaseScene<void> {
         const min = 0.65;
         const rate = g.game.random.generate() * (max - min) + min;
         opponent.setVelocityX(rate * this.player.getVelocityX());
-        opponent.onUpdate.add(() => { return opponent.run(this.terrain) });
+        opponent.onUpdate.add(() => { return opponent.run(this.terrain, this.camera) });
         this.opponentLayer.append(opponent);
     }
 

@@ -12,7 +12,7 @@ export class OpponentChicken extends Chicken {
         this.anchorY = 1;
     }
 
-    run(terrain: Terrain): void | boolean {
+    run(terrain: Terrain, camera: Camera2D): void | boolean {
         this.x += this.velocity.x;
         const groundTop = terrain.getGroundTop(this.x);
         if (groundTop < Number.MAX_VALUE) {
@@ -31,10 +31,8 @@ export class OpponentChicken extends Chicken {
             this.velocity.x = Math.max(this.velocity.x * 0.98, this.maxVelocityX);
         }
 
-        const camera = g.game.focusingCamera;
-        if (camera instanceof Camera2D &&
-            (this.getRight() < camera.getLeft() ||
-                this.getLeft() + this.getWidth() * 0.5 > camera.getRight())) {
+        if (this.getRight() < camera.getLeft() ||
+            this.getLeft() > camera.getRight()) {
             this.destroy();
         }
     }
