@@ -47,6 +47,8 @@ export class GameScene extends BaseScene<void> {
     private camera: Camera2D;
     private player: PlayerChicken;
     private terrain: Terrain;
+    private notice?: g.Label;
+    private startPlayerX: number = 0;
     private totalTimeLimit: number;
     // private debug: al.Label = this.createDebugLabel();  
 
@@ -76,7 +78,7 @@ export class GameScene extends BaseScene<void> {
         this.player = this.createChicken();
         this.terrain = this.createTerrain(random);
         this.camera = this.createCamera(this.player);
-        this.translateCamera();
+        this.translateLayerToCameraPosition();
         this.frontLayer.append(this.terrain);
         this.frontLayer.append(this.player);
 
@@ -105,20 +107,32 @@ export class GameScene extends BaseScene<void> {
         const start = this.createLabel("START");
         this.hudLayer.append(start);
 
+        const duration = 100;
+        const wait = 500;
         this.timeline.create(start)
-            .fadeIn(100, tl.Easing.easeInQuint)
-            .wait(500)
-            .fadeOut(100, tl.Easing.easeInQuint)
+            .fadeIn(duration, tl.Easing.easeInQuint)
+            .wait(wait)
+            .fadeOut(duration, tl.Easing.easeInQuint)
             .call(() => start.destroy());
+
         this.timeline.create(bg)
-            .wait(700)
-            .fadeOut(200, tl.Easing.easeInQuint)
+            .wait(wait + duration)
+            .fadeOut(duration * 2, tl.Easing.easeInQuint)
             .call(() => {
                 bg.destroy();
 
+                if (this.audioController.disablePlaySound) {
+                    this.notice = this.createLabel("画面タッチでゲームを開始します");
+                    this.hudLayer.append(this.notice);
+                    this.timeline.create(this.notice)
+                        .fadeIn(duration, tl.Easing.easeInQuint);
+                } else {
+                    this.onPointDownCapture.add(this.pointDownHandler);
+                    this.onPointUpCapture.add(this.pointUpHandler);
+                }
+
+                this.startPlayerX = this.player.x;
                 this.audioController.playMusic(MusicId.BGM);
-                this.onPointDownCapture.add(this.pointDownHandler);
-                this.onPointUpCapture.add(this.pointUpHandler);
                 this.onUpdate.add(this.updateHandler);
             });
     }
@@ -129,19 +143,30 @@ export class GameScene extends BaseScene<void> {
         const duration = (this.totalTimeLimit - elapsed - margin) * 1000;
         this.audioController.fadeOutMusic(MusicId.BGM, Math.max(1000, duration));
 
+        if (this.notice?.visible()) {
+            this.notice.hide();
+        }
+
         const finish = this.createLabel("FINISH");
         this.hudLayer.append(finish);
 
         this.timeline.create(finish)
             .fadeIn(100, tl.Easing.easeInQuint);
         this.timeline.create(finish, { loop: true })
-            .scaleTo(1.05, 1.05, 500, tl.Easing.easeOutSine)
-            .scaleTo(1.0, 1.0, 500, tl.Easing.easeInSine);
+            .scaleTo(1.05, 1.05, 1000, tl.Easing.easeOutSine)
+            .scaleTo(1.0, 1.0, 1000, tl.Easing.easeInSine);
     }
 
     private detectPointDownHandler = (_ev: g.PointDownEvent): void => {
         this.audioController.enablePlaySound();
+        this.startPlayerX = this.player.x;
         this.onPointDownCapture.remove(this.detectPointDownHandler);
+
+        if (this.notice?.visible()) {
+            this.onPointDownCapture.add(this.pointDownHandler);
+            this.onPointUpCapture.add(this.pointUpHandler);
+            this.notice.hide();
+        }
     };
 
     private pointDownHandler = (ev: g.PointDownEvent): void => this.eventQueue.push(ev);
@@ -162,11 +187,12 @@ export class GameScene extends BaseScene<void> {
         this.player.step(this.terrain);
         this.camera.step();
         this.terrain.step(this.camera);
-        this.translateCamera();
+        this.translateLayerToCameraPosition();
 
         if (g.game.age % g.game.fps === 0 &&
             this.opponentLayer.children.length <= 2 &&
-            this.player.getVelocityXRate() >= 0.1) {
+            this.player.getVelocityXRate() >= 0.1 &&
+            (this.countdownTimer.isFinished() || !this.audioController.disablePlaySound)) {
             this.addOpponent();
         }
 
@@ -175,8 +201,9 @@ export class GameScene extends BaseScene<void> {
             this.addBackgroundEffect(rate);
         }
 
-        if (!this.countdownTimer.isFinished()) {
-            const distance = Math.round(this.player.x)
+        if (!this.countdownTimer.isFinished() &&
+            !this.audioController.disablePlaySound) {
+            const distance = Math.round(this.player.x - this.startPlayerX)
             this.scoreLabel.setScore(distance);
         }
     };
@@ -195,7 +222,7 @@ export class GameScene extends BaseScene<void> {
         }
     }
 
-    private translateCamera(): void {
+    private translateLayerToCameraPosition(): void {
         this.backLayer.x = this.camera.getLeft();
         this.backLayer.y = this.camera.getTop();
         this.backLayer.modified();
@@ -240,8 +267,7 @@ export class GameScene extends BaseScene<void> {
 
     private createChicken(): PlayerChicken {
         const chicken = new PlayerChicken(this);
-        chicken.x = 0;
-        chicken.y = GameScene.START_Y - chicken.height * 5;
+        chicken.moveTo(0, GameScene.START_Y - chicken.height * 5);
         chicken.onFall = chicken => this.failed(chicken);
         chicken.onFrameElapsed = (chicken, prevX, prevY) => {
             this.emitBlur(chicken, prevX, prevY);
