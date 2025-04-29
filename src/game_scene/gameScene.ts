@@ -103,7 +103,6 @@ export class GameScene extends BaseScene<void> {
         this.hudLayer.append(bg);
 
         const start = this.createLabel("START");
-        start.opacity = 0;
         this.hudLayer.append(start);
 
         this.timeline.create(start)
@@ -131,7 +130,6 @@ export class GameScene extends BaseScene<void> {
         this.audioController.fadeOutMusic(MusicId.BGM, Math.max(1000, duration));
 
         const finish = this.createLabel("FINISH");
-        finish.opacity = 0;
         this.hudLayer.append(finish);
 
         this.timeline.create(finish)
@@ -459,6 +457,7 @@ export class GameScene extends BaseScene<void> {
             anchorY: 0.5,
             x: g.game.width / 2,
             y: g.game.height / 2,
+            opacity: 0,
         });
     }
 
