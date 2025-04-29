@@ -209,8 +209,8 @@ export class GameScene extends BaseScene<void> {
 
     private addOpponent(): void {
         const opponent = new OpponentChicken(this);
-        opponent.x = this.camera.getRight();
-        opponent.y = this.terrain.getEndPosition().y;
+        const x = this.camera.getRight() + opponent.getWidth() * 0.5;
+        opponent.moveTo(x, this.terrain.getGroundTop(x));
         const max = 0.95;
         const min = 0.65;
         const rate = g.game.random.generate() * (max - min) + min;
