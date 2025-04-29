@@ -99,11 +99,6 @@
 			"path": "script/common/util/pointEventQueue.js",
 			"global": true
 		},
-		"egg": {
-			"type": "script",
-			"path": "script/game_scene/egg.js",
-			"global": true
-		},
 		"collision": {
 			"type": "script",
 			"path": "script/common/util/collision.js",
@@ -130,34 +125,9 @@
 			"path": "script/common/entity/frameSprite2D.js",
 			"global": true
 		},
-		"scroller": {
-			"type": "script",
-			"path": "script/game_scene/scroller.js",
-			"global": true
-		},
-		"spawning": {
-			"type": "script",
-			"path": "script/game_scene/spawning.js",
-			"global": true
-		},
-		"starGate": {
-			"type": "script",
-			"path": "script/game_scene/starGate.js",
-			"global": true
-		},
-		"star": {
-			"type": "script",
-			"path": "script/game_scene/star.js",
-			"global": true
-		},
 		"iEntity2D": {
 			"type": "script",
 			"path": "script/common/entity/iEntity2D.js",
-			"global": true
-		},
-		"background": {
-			"type": "script",
-			"path": "script/game_scene/background.js",
 			"global": true
 		},
 		"typedEntity2D": {
