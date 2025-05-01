@@ -146,7 +146,8 @@ export class GameScene extends BaseScene<void> {
     private finishGame(): void {
         const margin = 2; // 念のために余裕を設けておく 
         const elapsed = Math.floor(g.game.age / g.game.fps);
-        const duration = (this.totalTimeLimit - elapsed - margin) * 1000;
+        const duration = WindowUtil.isNicovideoJpDomain() ?
+            (this.totalTimeLimit - elapsed - margin) * 1000 : 8000;
         this.audioController.fadeOutMusic(MusicId.BGM, Math.max(1000, duration));
 
         if (this.notice?.visible()) {
