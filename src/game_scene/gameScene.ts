@@ -3,11 +3,14 @@ import { Camera2D } from "../common/entity/camera2D";
 import { Entity2D } from "../common/entity/entity2D";
 import { FilledRect2D } from "../common/entity/filledRect2D";
 import { TypedEntity2D } from "../common/entity/typedEntity2D";
+import { Button } from "../common/gui/button";
 import { BaseScene } from "../common/scene/baseScene";
 import { AudioController, SoundParam } from "../common/util/audioController";
 import { CountdownTimer } from "../common/util/countdownTimer";
 import { PointEventQueue } from "../common/util/pointEventQueue";
 import { Random } from "../common/util/random";
+import { WindowUtil } from "../common/util/windowUtil";
+import { TitleScene } from "../title_scene/titleScene";
 import { GameMainParameterObject } from "./../parameterObject";
 import { Blur } from "./blur";
 import { OpponentChicken } from "./chicken/opponentChicken";
@@ -52,11 +55,11 @@ export class GameScene extends BaseScene<void> {
     private totalTimeLimit: number;
     // private debug: al.Label = this.createDebugLabel();  
 
-    constructor(param: GameMainParameterObject, isTouched: boolean, timeLimit: number) {
+    constructor(private param: GameMainParameterObject, isTouched: boolean, timeLimit: number) {
         super({
             game: g.game,
             assetIds: [
-                "img_chicken", MusicId.BGM,
+                "img_chicken", "img_retry_button", MusicId.BGM,
                 SoundId.JUMP, SoundId.TRAMPLE_1, SoundId.TRAMPLE_2, SoundId.CRUSH,
             ],
         });
@@ -155,6 +158,26 @@ export class GameScene extends BaseScene<void> {
         this.timeline.create(finish, { loop: true })
             .scaleTo(1.05, 1.05, 1000, tl.Easing.easeOutSine)
             .scaleTo(1.0, 1.0, 1000, tl.Easing.easeInSine);
+
+        if (!WindowUtil.isNicovideoJpDomain()) {
+            const retryButton = new Button(this, "img_retry_button");
+            retryButton.x = g.game.width - retryButton.width - BaseScene.SCREEN_PADDING;
+            retryButton.y = g.game.height - retryButton.height - BaseScene.SCREEN_PADDING;
+            retryButton.opacity = 0;
+            retryButton.onClick = _button => {
+                this.audioController.stopMusic(MusicId.BGM);
+                const titleScene = new TitleScene(this.param, 10);
+                titleScene.onFinish = isTouched => {
+                    g.game.replaceScene(new GameScene(this.param, isTouched, 60));
+                }
+                g.game.pushScene(titleScene);
+            };
+            this.hudLayer.append(retryButton);
+
+            this.timeline.create(retryButton)
+                .wait(1000)
+                .fadeIn(500, tl.Easing.easeInQuint);
+        }
     }
 
     private detectPointDownHandler = (_ev: g.PointDownEvent): void => {

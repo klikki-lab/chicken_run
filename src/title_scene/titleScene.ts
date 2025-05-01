@@ -8,6 +8,7 @@ import { BaseScene } from "../common/scene/baseScene";
 import { CountdownTimer } from "../common/util/countdownTimer";
 import { PointEventQueue } from "../common/util/pointEventQueue";
 import { Random } from "../common/util/random";
+import { WindowUtil } from "../common/util/windowUtil";
 import { PlayerChicken } from "../game_scene/chicken/playerChicken";
 import { GameScene } from "../game_scene/gameScene";
 import { Terrain } from "../game_scene/terrain/terrain";
@@ -49,19 +50,21 @@ export class TitleScene extends BaseScene<boolean> {
         this.translateCamera();
 
         this.font = this.createFont();
-        this.timeLabel = this.createTimeLabel(timeLimit);
 
         this.append(this.backLayer);
         this.append(this.terrain);
         this.append(this.player);
         this.append(this.frontLayer);
         this.createDescriptions(this.frontLayer);
-        this.frontLayer.append(this.timeLabel);
+
+        if (WindowUtil.isNicovideoJpDomain()) {
+            this.timeLabel = this.createTimeLabel(timeLimit);
+            this.countdownTimer = this.createCountdownTimer(timeLimit);
+            this.frontLayer.append(this.timeLabel);
+        }
         this.frontLayer.append(this.createStartButton());
 
-        this.countdownTimer = this.createCountdownTimer(timeLimit);
         this.eventQueue = new PointEventQueue();
-
         this.onPointDownCapture.add(this.detectPointDownHandler);
         this.onPointDownCapture.add(this.pointDownHandler);
         this.onPointUpCapture.add(this.pointUpHandler);
@@ -87,7 +90,9 @@ export class TitleScene extends BaseScene<boolean> {
             return true;
         }
 
-        this.countdownTimer.update();
+        if (WindowUtil.isNicovideoJpDomain()) {
+            this.countdownTimer.update();
+        }
         this.processInputQueue();
         this.player.step(this.terrain);
         this.camera.step();
@@ -205,38 +210,45 @@ export class TitleScene extends BaseScene<boolean> {
     }
 
     private createDescriptions(layer: g.E) {
+        const isNicovideoJpDomain = WindowUtil.isNicovideoJpDomain();
+        const clickText = isNicovideoJpDomain ?
+            "画面にタッチ\n  ▷ ジャンプ" : "- Tap to jump";
         const click = new al.Label({
             scene: this,
             parent: layer,
             font: this.font,
-            text: "画面にタッチ\n  ▷ ジャンプ",
-            width: this.font.size * 7,
+            text: clickText,
+            width: this.font.size * clickText.length,
         });
         click.x = BaseScene.SCREEN_PADDING;
         click.y = BaseScene.SCREEN_PADDING;
 
+        const holdText = isNicovideoJpDomain ?
+            "ジャンプ中に長押し\n  ▷ 滑空" : "- Hold during jump to glide";
         const longPress = new al.Label({
             scene: this,
             parent: layer,
             font: this.font,
-            text: "ジャンプ中に長押し\n  ▷ 滑空",
-            width: this.font.size * 10,
+            text: holdText,
+            width: this.font.size * holdText.length,
         });
         longPress.x = BaseScene.SCREEN_PADDING;
         longPress.y = click.y + longPress.height * 1.5;
 
+        const descriptionText = isNicovideoJpDomain ?
+            "より速く、より遠くへ...\uFF01\n" + "ナカマを踏むと加速する！" :
+            "Go faster, go farther...!\n" + "Bounce off fellow chickens for a speed up!"
         const descriptionFontSize = this.font.size * 0.75;
         const description = new al.Label({
             scene: this,
             parent: layer,
             font: this.font,
             fontSize: descriptionFontSize,
-            text: "より速く、より遠くへ...\uFF01\n" +
-                "ナカマを踏むと加速する！\n",
-            width: descriptionFontSize * 12,
+            text: descriptionText,
+            width: descriptionFontSize * descriptionText.length / 2,
         });
         description.x = BaseScene.SCREEN_PADDING * 1.5;
-        description.y = g.game.height - description.height;
+        description.y = g.game.height - description.height - BaseScene.SCREEN_PADDING / 2;
     }
 
     private createTimeLabel(timeLimit: number): g.Label {

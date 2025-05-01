@@ -235,6 +235,12 @@
 			"path": "image/img_start_button.png",
 			"width": 512,
 			"height": 128
+		},
+		"img_retry_button": {
+			"type": "image",
+			"path": "image/img_retry_button.png",
+			"width": 512,
+			"height": 128
 		}
 	},
 	"moduleMainScripts": {
