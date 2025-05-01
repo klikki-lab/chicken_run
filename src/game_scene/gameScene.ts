@@ -86,7 +86,10 @@ export class GameScene extends BaseScene<void> {
         this.frontLayer.append(this.player);
 
         this.timeline = new tl.Timeline(this);
-        this.audioController = this.createAudioController(0.175, 0.2, !isTouched);
+        const isNicovideoJpDomain = WindowUtil.isNicovideoJpDomain();
+        const musicVolume = 0.175 * (isNicovideoJpDomain ? 1 : 0.25);
+        const soundVolume = 0.2 * (isNicovideoJpDomain ? 1 : 0.25);
+        this.audioController = this.createAudioController(musicVolume, soundVolume, !isTouched);
         this.eventQueue = new PointEventQueue();
 
         if (!isTouched) {
