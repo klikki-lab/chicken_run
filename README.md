@@ -1,5 +1,7 @@
 # コッコラン
 ![screenshot](screenshot.png)
+[itch.io - コッコラン](https://klikki.itch.io/cucco-run)
+
 ## ゲーム紹介
 より速く、より遠くへ...！  
 ナカマを踏むと加速する！  
